@@ -10,6 +10,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "srcadls"
+				},
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorageWorkshop",
+						"type": "LinkedServiceReference"
+					},
+					"name": "srcnewlkp"
 				}
 			],
 			"sinks": [
@@ -49,6 +56,23 @@
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
 				"     format: 'parquet') ~> srcadls",
+				"source(output(",
+				"          {_col0_} as string,",
+				"          {_col1_} as string,",
+				"          {_col2_} as string,",
+				"          {_col3_} as string",
+				"     ),",
+				"     useSchema: false,",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'synpswrkshp',",
+				"     fileName: 'taxizonelookup.csv',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: false) ~> srcnewlkp",
 				"srcadls sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'delta',",
