@@ -15,18 +15,10 @@
 			"sinks": [],
 			"transformations": [
 				{
-					"name": "inputadls"
-				},
-				{
 					"name": "output"
 				}
 			],
 			"scriptLines": [
-				"input(output(",
-				"          test as string",
-				"     ),",
-				"     order: 0,",
-				"     allowSchemaDrift: true) ~> inputadls",
 				"source(output(",
 				"          VendorID as long,",
 				"          lpep_pickup_datetime as timestamp,",
