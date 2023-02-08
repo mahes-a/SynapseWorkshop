@@ -48,11 +48,7 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet',",
-				"     partitionBy('key',",
-				"          0,",
-				"          PULocationID",
-				"     )) ~> srcDF",
+				"     format: 'parquet') ~> srcDF",
 				"srcDF sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'delta',",
@@ -70,7 +66,11 @@
 				"     preCommands: [],",
 				"     postCommands: [],",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sinkdelta"
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('key',",
+				"          1,",
+				"          PULocationID",
+				"     )) ~> sinkdelta"
 			]
 		}
 	}
