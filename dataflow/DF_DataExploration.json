@@ -12,7 +12,15 @@
 					"name": "srcadls"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorageWorkshop",
+						"type": "LinkedServiceReference"
+					},
+					"name": "snkadls"
+				}
+			],
 			"transformations": [],
 			"scriptLines": [
 				"source(output(",
@@ -40,7 +48,25 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet') ~> srcadls"
+				"     format: 'parquet') ~> srcadls",
+				"srcadls sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'synpswrkshp',",
+				"     folderPath: 'Delta',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> snkadls"
 			]
 		}
 	}
