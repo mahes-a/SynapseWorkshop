@@ -30,6 +30,55 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('workspaceName'), '/PL_DF_DEBUG_EXPLORATION')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow debug explore",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DataExploration",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"srcadls": {},
+									"srcnewlkp": {},
+									"snkadls": {}
+								}
+							},
+							"staging": {},
+							"integrationRuntime": {
+								"referenceName": "DataFlowWarmPoolIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/DF_DataExploration')]",
+				"[concat(variables('workspaceId'), '/integrationRuntimes/DataFlowWarmPoolIntegrationRuntime')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/DS_Parquet')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
