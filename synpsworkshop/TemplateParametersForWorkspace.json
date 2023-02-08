@@ -5,17 +5,17 @@
 		"workspaceName": {
 			"value": "synpsworkshop"
 		},
-		"synpsworkshop-WorkspaceDefaultSqlServer_connectionString": {
-			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:synpsworkshop.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
-		},
 		"AzureDataLakeStorageWorkshop_accountKey": {
 			"value": ""
 		},
-		"synpsworkshop-WorkspaceDefaultStorage_properties_typeProperties_url": {
-			"value": "https://stgwrkshp.dfs.core.windows.net"
+		"synpsworkshop-WorkspaceDefaultSqlServer_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:synpsworkshop.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
 		},
 		"AzureDataLakeStorageWorkshop_properties_typeProperties_url": {
 			"value": "https://stgwrkshp.dfs.core.windows.net/"
+		},
+		"synpsworkshop-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://stgwrkshp.dfs.core.windows.net"
 		}
 	}
 }
