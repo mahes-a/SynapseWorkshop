@@ -6,9 +6,9 @@
 			"sources": [],
 			"sinks": [
 				{
-					"linkedService": {
-						"referenceName": "AzureDataLakeStorageWorkshop",
-						"type": "LinkedServiceReference"
+					"dataset": {
+						"referenceName": "ParquetSink",
+						"type": "DatasetReference"
 					},
 					"name": "sink"
 				}
@@ -24,7 +24,7 @@
 					"name": "select"
 				},
 				{
-					"name": "MapDrifted1",
+					"name": "MapDrifted",
 					"description": "Creates an explicit mapping for each drifted column"
 				},
 				{
@@ -165,19 +165,21 @@
 				"          num_of_260_count = toLong(byName('num_of_260_count')),",
 				"          num_of_263_count = toLong(byName('num_of_263_count')),",
 				"          num_of_264_count = toLong(byName('num_of_264_count')),",
-				"          num_of_265_count = toLong(byName('num_of_265_count'))) ~> MapDrifted1",
-				"MapDrifted1 sink(allowSchemaDrift: true,",
+				"          num_of_265_count = toLong(byName('num_of_265_count'))) ~> MapDrifted",
+				"MapDrifted sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     format: 'json',",
-				"     fileSystem: 'synpswrkshp',",
+				"     format: 'parquet',",
+				"     truncate: true,",
 				"     umask: 0022,",
 				"     preCommands: [],",
 				"     postCommands: [],",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     mapColumn(",
-				"          pickupdate",
-				"     )) ~> sink"
+				"          each(match(/* All input columns */ true()),",
+				"               /* Input name */ $$ = $$)",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sink"
 			]
 		}
 	}
