@@ -1,0 +1,78 @@
+{
+	"name": "Dataflow_window_lag",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorageWorkshop",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "select"
+				},
+				{
+					"name": "aggregate"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "compose",
+					"flowlet": {
+						"referenceName": "FLW_GreenTaxi",
+						"type": "DataFlowReference"
+					}
+				}
+			],
+			"scriptLines": [
+				"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
+				"select derive(pickupmonth = month(lpep_pickup_datetime)) ~> derivedColumn1",
+				"compose@output select(mapColumn(",
+				"          lpep_pickup_datetime,",
+				"          PULocationID,",
+				"          DOLocationID,",
+				"          passenger_count,",
+				"          trip_distance,",
+				"          fare_amount,",
+				"          tip_amount,",
+				"          total_amount",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select",
+				"derivedColumn1 aggregate(groupBy(pickupmonth,",
+				"          PULocationID),",
+				"     trip_distance = sum(trip_distance),",
+				"          total_amount = sum(total_amount),",
+				"          tip_amount = sum(tip_amount)) ~> aggregate",
+				"aggregate window(over(pickupmonth,",
+				"          PULocationID),",
+				"     desc(total_amount, true),",
+				"     lagmonthtotalamount = lag(total_amount, 1, 0)) ~> window1",
+				"window1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'synpswrkshp',",
+				"     folderPath: 'Output',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink"
+			]
+		}
+	}
+}
