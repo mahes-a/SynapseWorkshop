@@ -1,5 +1,5 @@
 {
-	"name": "PL_DF_WINDOW_LAG",
+	"name": "PL_DF_WINDOW_RANK",
 	"properties": {
 		"activities": [
 			{
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "Dataflow_window_lag",
+						"referenceName": "Dataflow_window_rank",
 						"type": "DataFlowReference"
 					},
 					"compute": {

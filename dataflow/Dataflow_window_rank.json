@@ -1,5 +1,5 @@
 {
-	"name": "Dataflow_window_lag",
+	"name": "Dataflow_window_rank",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
@@ -49,13 +49,15 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select",
-				"derivedColumn aggregate(groupBy(pickupdate),",
+				"derivedColumn aggregate(groupBy(pickupdate,",
+				"          PULocationID),",
 				"     trip_distance = sum(trip_distance),",
 				"          total_amount = sum(total_amount),",
 				"          tip_amount = sum(tip_amount)) ~> aggregate",
 				"aggregate window(over(pickupdate),",
-				"     asc(pickupdate, true),",
-				"     lagdailyamount = lag(total_amount, 1, 0)) ~> windowlag",
+				"     desc(total_amount, true),",
+				"     rank = rank(),",
+				"     partitionBy('hash', 1)) ~> windowlag",
 				"windowlag sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'delimited',",
