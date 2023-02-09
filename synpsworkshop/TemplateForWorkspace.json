@@ -79,6 +79,53 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/PL_DF_WINDOW_RANK')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow_window_rank",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourcelkp": {},
+									"sink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow_window_rank')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/PL_Flowlet_PivotTest')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -1019,6 +1066,178 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/DF_SurrogateKeyIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ParquetSink",
+								"type": "DatasetReference"
+							},
+							"name": "sink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "surrogateKey"
+						},
+						{
+							"name": "compose",
+							"flowlet": {
+								"referenceName": "FLW_GreenTaxi",
+								"type": "DataFlowReference",
+								"parameters": {}
+							}
+						}
+					],
+					"scriptLines": [
+						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
+						"compose@output keyGenerate(output(surrogatekey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L) ~> surrogateKey",
+						"surrogateKey sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
+				"[concat(variables('workspaceId'), '/datasets/ParquetSink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_window_rank')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sourcelkp"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn"
+						},
+						{
+							"name": "select"
+						},
+						{
+							"name": "aggregate"
+						},
+						{
+							"name": "windowlag"
+						},
+						{
+							"name": "join"
+						},
+						{
+							"name": "compose",
+							"flowlet": {
+								"referenceName": "FLW_GreenTaxi",
+								"type": "DataFlowReference",
+								"parameters": {}
+							}
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          LocationID as short,",
+						"          Borough as string,",
+						"          Zone as string,",
+						"          service_zone as string",
+						"     ),",
+						"     useSchema: false,",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'synpswrkshp',",
+						"     fileName: 'taxizonelookup.csv',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true) ~> sourcelkp",
+						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
+						"select derive(pickupdate = toDate(lpep_pickup_datetime)) ~> derivedColumn",
+						"join select(mapColumn(",
+						"          lpep_pickup_datetime,",
+						"          PULocationID,",
+						"          DOLocationID,",
+						"          passenger_count,",
+						"          trip_distance,",
+						"          fare_amount,",
+						"          tip_amount,",
+						"          total_amount,",
+						"          pickupborough = Borough",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select",
+						"derivedColumn aggregate(groupBy(pickupdate,",
+						"          PULocationID,",
+						"          pickupborough),",
+						"     trip_distance = sum(trip_distance),",
+						"          total_amount = sum(total_amount),",
+						"          tip_amount = sum(tip_amount)) ~> aggregate",
+						"aggregate window(over(pickupdate),",
+						"     desc(total_amount, true),",
+						"     rank = rank(),",
+						"     partitionBy('hash', 1)) ~> windowlag",
+						"compose@output, sourcelkp join(PULocationID == LocationID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join",
+						"windowlag sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'Output',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]",
+				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/FLW_GreenTaxi')]",
 			"type": "Microsoft.Synapse/workspaces/dataflows",
 			"apiVersion": "2019-06-01-preview",
@@ -1086,190 +1305,6 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/DF_SurrogateKeyIdentity')]",
-			"type": "Microsoft.Synapse/workspaces/dataflows",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "ParquetSink",
-								"type": "DatasetReference"
-							},
-							"name": "sink"
-						}
-					],
-					"transformations": [
-						{
-							"name": "surrogateKey"
-						},
-						{
-							"name": "compose",
-							"flowlet": {
-								"referenceName": "FLW_GreenTaxi",
-								"type": "DataFlowReference",
-								"parameters": {}
-							}
-						}
-					],
-					"scriptLines": [
-						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
-						"compose@output keyGenerate(output(surrogatekey as long),",
-						"     startAt: 1L,",
-						"     stepValue: 1L) ~> surrogateKey",
-						"surrogateKey sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'parquet',",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
-				"[concat(variables('workspaceId'), '/datasets/ParquetSink')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Dataflow_window_rank')]",
-			"type": "Microsoft.Synapse/workspaces/dataflows",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "AzureDataLakeStorageWorkshop",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink"
-						}
-					],
-					"transformations": [
-						{
-							"name": "derivedColumn"
-						},
-						{
-							"name": "select"
-						},
-						{
-							"name": "aggregate"
-						},
-						{
-							"name": "windowlag"
-						},
-						{
-							"name": "compose",
-							"flowlet": {
-								"referenceName": "FLW_GreenTaxi",
-								"type": "DataFlowReference",
-								"parameters": {}
-							}
-						}
-					],
-					"scriptLines": [
-						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
-						"select derive(pickupdate = toDate(lpep_pickup_datetime)) ~> derivedColumn",
-						"compose@output select(mapColumn(",
-						"          lpep_pickup_datetime,",
-						"          PULocationID,",
-						"          DOLocationID,",
-						"          passenger_count,",
-						"          trip_distance,",
-						"          fare_amount,",
-						"          tip_amount,",
-						"          total_amount",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select",
-						"derivedColumn aggregate(groupBy(pickupdate,",
-						"          PULocationID),",
-						"     trip_distance = sum(trip_distance),",
-						"          total_amount = sum(total_amount),",
-						"          tip_amount = sum(tip_amount)) ~> aggregate",
-						"aggregate window(over(pickupdate),",
-						"     desc(total_amount, true),",
-						"     rank = rank(),",
-						"     partitionBy('hash', 1)) ~> windowlag",
-						"windowlag sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'delimited',",
-						"     fileSystem: 'synpswrkshp',",
-						"     folderPath: 'Output',",
-						"     columnDelimiter: ',',",
-						"     escapeChar: '\\\\',",
-						"     quoteChar: '\\\"',",
-						"     columnNamesAsHeader: true,",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true,",
-						"     partitionBy('hash', 1)) ~> sink"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
-				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/PL_DF_WINDOW_RANK')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"activities": [
-					{
-						"name": "Data flow",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "Dataflow_window_rank",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"sink": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
-				"[concat(variables('workspaceId'), '/dataflows/Dataflow_window_rank')]"
-			]
 		}
 	]
 }
