@@ -41,7 +41,7 @@
 				"     insertable:true,",
 				"     updateable:true,",
 				"     upsertable:true,",
-				"     keys:['VendorID','lpep_pickup_datetime','lpep_dropoff_datetime','PULocationID','DOLocationID'],",
+				"     keys:['VendorID','lpep_pickup_datetime','lpep_dropoff_datetime','PULocationID','DOLocationID','passenger_count','tip_amount','RatecodeID'],",
 				"     umask: 0022,",
 				"     preCommands: [],",
 				"     postCommands: [],",
