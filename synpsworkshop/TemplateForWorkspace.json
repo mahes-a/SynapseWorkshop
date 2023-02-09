@@ -1553,6 +1553,62 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_UDF')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ParquetSink",
+								"type": "DatasetReference"
+							},
+							"name": "sink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn"
+						},
+						{
+							"name": "compose",
+							"flowlet": {
+								"referenceName": "FLW_GreenTaxi",
+								"type": "DataFlowReference",
+								"parameters": {}
+							}
+						}
+					],
+					"udfLibraries": [
+						{
+							"referenceName": "stringLib",
+							"type": "DataFlowReference"
+						}
+					],
+					"scriptLines": [
+						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
+						"compose@output derive(store_and_fwd_flag = TrimValue(store_and_fwd_flag)) ~> derivedColumn",
+						"derivedColumn sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/stringLib')]",
+				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
+				"[concat(variables('workspaceId'), '/datasets/ParquetSink')]"
+			]
 		}
 	]
 }
