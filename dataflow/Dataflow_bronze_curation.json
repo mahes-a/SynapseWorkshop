@@ -28,7 +28,7 @@
 				"     validateSchema: false,",
 				"     format: 'delta',",
 				"     fileSystem: 'synpswrkshp',",
-				"     folderPath: 'bronze',",
+				"     folderPath: 'bronze/NycGreenTaxi',",
 				"     overwrite:true,",
 				"     mergeSchema: false,",
 				"     autoCompact: false,",
