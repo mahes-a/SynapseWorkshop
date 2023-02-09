@@ -15,7 +15,7 @@
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn1"
+					"name": "derivedColumn"
 				},
 				{
 					"name": "select"
@@ -24,7 +24,7 @@
 					"name": "aggregate"
 				},
 				{
-					"name": "window1"
+					"name": "windowlag"
 				},
 				{
 					"name": "compose",
@@ -36,7 +36,7 @@
 			],
 			"scriptLines": [
 				"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
-				"select derive(pickupmonth = month(lpep_pickup_datetime)) ~> derivedColumn1",
+				"select derive(pickupdate = toDate(lpep_pickup_datetime)) ~> derivedColumn",
 				"compose@output select(mapColumn(",
 				"          lpep_pickup_datetime,",
 				"          PULocationID,",
@@ -49,16 +49,14 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select",
-				"derivedColumn1 aggregate(groupBy(pickupmonth,",
-				"          PULocationID),",
+				"derivedColumn aggregate(groupBy(pickupdate),",
 				"     trip_distance = sum(trip_distance),",
 				"          total_amount = sum(total_amount),",
 				"          tip_amount = sum(tip_amount)) ~> aggregate",
-				"aggregate window(over(pickupmonth,",
-				"          PULocationID),",
-				"     desc(total_amount, true),",
-				"     lagmonthtotalamount = lag(total_amount, 1, 0)) ~> window1",
-				"window1 sink(allowSchemaDrift: true,",
+				"aggregate window(over(pickupdate),",
+				"     asc(pickupdate, true),",
+				"     lagdailyamount = lag(total_amount, 1, 0)) ~> windowlag",
+				"windowlag sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'delimited',",
 				"     fileSystem: 'synpswrkshp',",
