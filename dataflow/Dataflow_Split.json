@@ -31,7 +31,8 @@
 			"scriptLines": [
 				"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
 				"compose@output derive(fname = '/myfiles/test.csv') ~> derivedColumn",
-				"derivedColumn derive(finalfname = split(fname, '/')) ~> derivedColumn1",
+				"derivedColumn derive(finalfname = split(fname, '/'),",
+				"          vname = case(VendorID==1, 'vanme1', 'vname2')) ~> derivedColumn1",
 				"derivedColumn1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",
