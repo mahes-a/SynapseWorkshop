@@ -1663,6 +1663,110 @@
 				"typeProperties": {}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Bronze_Curation')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow bronze",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow_bronze_curation",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sinkbronze": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow_bronze_curation')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_bronze_curation')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sinkbronze"
+						}
+					],
+					"transformations": [
+						{
+							"name": "compose",
+							"flowlet": {
+								"referenceName": "FLW_GreenTaxi",
+								"type": "DataFlowReference",
+								"parameters": {}
+							}
+						}
+					],
+					"scriptLines": [
+						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
+						"compose@output sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'bronze',",
+						"     overwrite:true,",
+						"     mergeSchema: false,",
+						"     autoCompact: false,",
+						"     optimizedWrite: false,",
+						"     vacuum: 0,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     keys:['VendorID','lpep_pickup_datetime','lpep_dropoff_datetime','PULocationID','DOLocationID','RatecodeID','fare_amount','tip_amount'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sinkbronze"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
+				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
+			]
 		}
 	]
 }
