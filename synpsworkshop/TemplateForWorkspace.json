@@ -30,6 +30,99 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Bronze_Curation')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow bronze",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow_bronze_curation",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sinkbronze": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow_bronze_curation')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Bronze_Curation_Upsert')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow_bronze_curation_upsert",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow_bronze_curation_upsert')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/PL_Create_Complex')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -1457,6 +1550,138 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_bronze_curation')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sinkbronze"
+						}
+					],
+					"transformations": [
+						{
+							"name": "compose",
+							"flowlet": {
+								"referenceName": "FLW_GreenTaxi",
+								"type": "DataFlowReference",
+								"parameters": {}
+							}
+						}
+					],
+					"scriptLines": [
+						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
+						"compose@output sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'bronze/NycGreenTaxi',",
+						"     overwrite:true,",
+						"     mergeSchema: false,",
+						"     autoCompact: false,",
+						"     optimizedWrite: false,",
+						"     vacuum: 0,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     keys:['VendorID','lpep_pickup_datetime','lpep_dropoff_datetime','PULocationID','DOLocationID','RatecodeID','fare_amount','tip_amount'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sinkbronze"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
+				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_bronze_curation_upsert')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          LocationID as short,",
+						"          Borough as string,",
+						"          Zone as string,",
+						"          service_zone as string",
+						"     ),",
+						"     useSchema: false,",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'synpswrkshp',",
+						"     fileName: 'taxizonelookup.csv',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true) ~> source1",
+						"source1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'bronze/zonelookup',",
+						"     mergeSchema: false,",
+						"     autoCompact: false,",
+						"     optimizedWrite: false,",
+						"     vacuum: 0,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['LocationID','Borough','Zone','service_zone'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/Dataflow_window_rank')]",
 			"type": "Microsoft.Synapse/workspaces/dataflows",
 			"apiVersion": "2019-06-01-preview",
@@ -1665,108 +1890,24 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/PL_Bronze_Curation')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
-				"activities": [
-					{
-						"name": "Data flow bronze",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "Dataflow_bronze_curation",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"sinkbronze": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    COUNT(1)\nFROM\n    OPENROWSET(\n        BULK 'https://stgwrkshp.dfs.core.windows.net/synpswrkshp/bronze/zonelookup/',\n        FORMAT = 'DELTA'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
 				},
-				"annotations": []
+				"type": "SqlQuery"
 			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
-				"[concat(variables('workspaceId'), '/dataflows/Dataflow_bronze_curation')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Dataflow_bronze_curation')]",
-			"type": "Microsoft.Synapse/workspaces/dataflows",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [],
-					"sinks": [
-						{
-							"linkedService": {
-								"referenceName": "AzureDataLakeStorageWorkshop",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sinkbronze"
-						}
-					],
-					"transformations": [
-						{
-							"name": "compose",
-							"flowlet": {
-								"referenceName": "FLW_GreenTaxi",
-								"type": "DataFlowReference",
-								"parameters": {}
-							}
-						}
-					],
-					"scriptLines": [
-						"compose(composition: 'FLW_GreenTaxi') ~> compose@(output)",
-						"compose@output sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'delta',",
-						"     fileSystem: 'synpswrkshp',",
-						"     folderPath: 'bronze/NycGreenTaxi',",
-						"     overwrite:true,",
-						"     mergeSchema: false,",
-						"     autoCompact: false,",
-						"     optimizedWrite: false,",
-						"     vacuum: 0,",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     keys:['VendorID','lpep_pickup_datetime','lpep_dropoff_datetime','PULocationID','DOLocationID','RatecodeID','fare_amount','tip_amount'],",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sinkbronze"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/dataflows/FLW_GreenTaxi')]",
-				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
-			]
+			"dependsOn": []
 		}
 	]
 }
