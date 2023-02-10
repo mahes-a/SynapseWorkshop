@@ -264,7 +264,7 @@
 				"     validateSchema: false,",
 				"     format: 'parquet',",
 				"     fileSystem: 'synpswrkshp',",
-				"     folderPath: 'gold',",
+				"     folderPath: 'gold/dimdropoff',",
 				"     umask: 0022,",
 				"     preCommands: [],",
 				"     postCommands: [],",
