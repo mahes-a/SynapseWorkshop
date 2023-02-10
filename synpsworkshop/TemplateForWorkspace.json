@@ -1890,26 +1890,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/SQL script 1')]",
-			"type": "Microsoft.Synapse/workspaces/sqlscripts",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"content": {
-					"query": "-- This is auto-generated code\nSELECT\n    COUNT(1)\nFROM\n    OPENROWSET(\n        BULK 'https://stgwrkshp.dfs.core.windows.net/synpswrkshp/bronze/zonelookup/',\n        FORMAT = 'DELTA'\n    ) AS [result]\n",
-					"metadata": {
-						"language": "sql"
-					},
-					"currentConnection": {
-						"databaseName": "master",
-						"poolName": "Built-in"
-					},
-					"resultLimit": 5000
-				},
-				"type": "SqlQuery"
-			},
-			"dependsOn": []
-		},
-		{
 			"name": "[concat(parameters('workspaceName'), '/Dataflow_Silver_Curation')]",
 			"type": "Microsoft.Synapse/workspaces/dataflows",
 			"apiVersion": "2019-06-01-preview",
@@ -2136,6 +2116,339 @@
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
 				"[concat(variables('workspaceId'), '/dataflows/Dataflow_Silver_Curation')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_Gold_StarSchema')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source"
+						},
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink"
+						},
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select"
+						},
+						{
+							"name": "derivedColumn"
+						},
+						{
+							"name": "selectdimpickup"
+						},
+						{
+							"name": "DistinctRows1"
+						},
+						{
+							"name": "selectdimdropoff"
+						},
+						{
+							"name": "DistinctRows"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          VendorID as long,",
+						"          lpep_pickup_datetime as timestamp,",
+						"          lpep_dropoff_datetime as timestamp,",
+						"          store_and_fwd_flag as string,",
+						"          RatecodeID as double,",
+						"          PULocationID as long,",
+						"          DOLocationID as long,",
+						"          passenger_count as double,",
+						"          trip_distance as double,",
+						"          fare_amount as double,",
+						"          extra as double,",
+						"          mta_tax as double,",
+						"          tip_amount as double,",
+						"          tolls_amount as double,",
+						"          ehail_fee as integer,",
+						"          improvement_surcharge as double,",
+						"          total_amount as double,",
+						"          payment_type as double,",
+						"          trip_type as double,",
+						"          congestion_surcharge as double,",
+						"          PU_Borough as string,",
+						"          PU_Zone as string,",
+						"          PU_service_zone as string,",
+						"          DO_Borough as string,",
+						"          Do_Zone as string,",
+						"          DO_service_zone as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'silver/nycgreentaxienhanced') ~> source",
+						"source(output(",
+						"          VendorID as long,",
+						"          lpep_pickup_datetime as timestamp,",
+						"          lpep_dropoff_datetime as timestamp,",
+						"          store_and_fwd_flag as string,",
+						"          RatecodeID as double,",
+						"          PULocationID as long,",
+						"          DOLocationID as long,",
+						"          passenger_count as double,",
+						"          trip_distance as double,",
+						"          fare_amount as double,",
+						"          extra as double,",
+						"          mta_tax as double,",
+						"          tip_amount as double,",
+						"          tolls_amount as double,",
+						"          ehail_fee as integer,",
+						"          improvement_surcharge as double,",
+						"          total_amount as double,",
+						"          payment_type as double,",
+						"          trip_type as double,",
+						"          congestion_surcharge as double,",
+						"          PU_Borough as string,",
+						"          PU_Zone as string,",
+						"          PU_service_zone as string,",
+						"          DO_Borough as string,",
+						"          Do_Zone as string,",
+						"          DO_service_zone as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'silver/nycgreentaxienhanced') ~> source1",
+						"source(output(",
+						"          VendorID as long,",
+						"          lpep_pickup_datetime as timestamp,",
+						"          lpep_dropoff_datetime as timestamp,",
+						"          store_and_fwd_flag as string,",
+						"          RatecodeID as double,",
+						"          PULocationID as long,",
+						"          DOLocationID as long,",
+						"          passenger_count as double,",
+						"          trip_distance as double,",
+						"          fare_amount as double,",
+						"          extra as double,",
+						"          mta_tax as double,",
+						"          tip_amount as double,",
+						"          tolls_amount as double,",
+						"          ehail_fee as integer,",
+						"          improvement_surcharge as double,",
+						"          total_amount as double,",
+						"          payment_type as double,",
+						"          trip_type as double,",
+						"          congestion_surcharge as double,",
+						"          PU_Borough as string,",
+						"          PU_Zone as string,",
+						"          PU_service_zone as string,",
+						"          DO_Borough as string,",
+						"          Do_Zone as string,",
+						"          DO_service_zone as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'silver/nycgreentaxienhanced') ~> source2",
+						"source select(mapColumn(",
+						"          VendorID,",
+						"          lpep_pickup_datetime,",
+						"          lpep_dropoff_datetime,",
+						"          PULocationID,",
+						"          DOLocationID,",
+						"          passenger_count,",
+						"          trip_distance,",
+						"          fare_amount,",
+						"          tip_amount,",
+						"          total_amount,",
+						"          PU_Borough,",
+						"          PU_Zone,",
+						"          PU_service_zone,",
+						"          DO_Borough,",
+						"          Do_Zone,",
+						"          DO_service_zone",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select",
+						"select derive(pickupdate = toDate(lpep_pickup_datetime)) ~> derivedColumn",
+						"source1 select(mapColumn(",
+						"          PULocationID,",
+						"          PU_Borough,",
+						"          PU_Zone,",
+						"          PU_service_zone",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdimpickup",
+						"selectdimpickup aggregate(groupBy(mycols = sha2(256,columns())),",
+						"     each(match(true()), $$ = first($$))) ~> DistinctRows1",
+						"source2 select(mapColumn(",
+						"          DOLocationID,",
+						"          DO_Borough,",
+						"          Do_Zone,",
+						"          DO_service_zone",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectdimdropoff",
+						"selectdimdropoff aggregate(groupBy(mycols = sha2(256,columns())),",
+						"     each(match(true()), $$ = first($$))) ~> DistinctRows",
+						"DistinctRows1 select(mapColumn(",
+						"          PULocationID,",
+						"          PU_Borough,",
+						"          PU_Zone,",
+						"          PU_service_zone",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"DistinctRows select(mapColumn(",
+						"          DOLocationID,",
+						"          DO_Borough,",
+						"          Do_Zone,",
+						"          DO_service_zone",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"derivedColumn sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'gold/nyctaxifact',",
+						"     compressionCodec: 'snappy',",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('key',",
+						"          0,",
+						"          pickupdate",
+						"     )) ~> sink",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'gold/dimpickup',",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'gold/dimdropoff',",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink2"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_GOLD_CurationStarSchema')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow_Gold_StarSchema",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source": {},
+									"source1": {},
+									"source2": {},
+									"sink": {},
+									"sink1": {},
+									"sink2": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow_Gold_StarSchema')]"
 			]
 		}
 	]
