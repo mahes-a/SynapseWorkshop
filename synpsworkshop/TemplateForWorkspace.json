@@ -3114,6 +3114,220 @@
 				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]",
 				"[concat(variables('workspaceId'), '/dataflows/Dataflow_SCD2_PREP')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow_SCD2')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source2"
+						},
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "AzureDataLakeStorageWorkshop",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "LookForNULLs"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "union1"
+						},
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "select3"
+						},
+						{
+							"name": "derivedColumn2"
+						},
+						{
+							"name": "select4"
+						},
+						{
+							"name": "derivedColumn3"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          LocationID as short,",
+						"          Borough as string,",
+						"          Zone as string,",
+						"          service_zone as string,",
+						"          StartDate as timestamp,",
+						"          EndDate as timestamp,",
+						"          IsCurrent as boolean,",
+						"          Processime as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'bronze/SCD2') ~> source2",
+						"source(output(",
+						"          LocationID as short,",
+						"          Borough as string,",
+						"          Zone as string,",
+						"          service_zone as string",
+						"     ),",
+						"     useSchema: false,",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'synpswrkshp',",
+						"     fileName: 'taxizonelookup_scd2.csv',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true) ~> source1",
+						"select3, source2 join(LocationIDnew == LocationID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 split(isNull(LocationID),",
+						"     disjoint: false) ~> LookForNULLs@(hasNULLs, noNULLs)",
+						"LookForNULLs@hasNULLs derive(inserteddate = currentTimestamp(),",
+						"          StartDate = currentTimestamp(),",
+						"          IsCurrent = true(),",
+						"          Processime = currentTimestamp()) ~> derivedColumn1",
+						"derivedColumn1 select(mapColumn(",
+						"          LocationID = LocationIDnew,",
+						"          Borough = Boroughnew,",
+						"          Zone = Zonenew,",
+						"          service_zone = service_zonenew,",
+						"          StartDate,",
+						"          EndDate,",
+						"          IsCurrent,",
+						"          Processime",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1, derivedColumn2 union(byName: true)~> union1",
+						"union1 alterRow(upsertIf(true())) ~> alterRow1",
+						"LookForNULLs@noNULLs select(mapColumn(",
+						"          LocationID,",
+						"          Borough,",
+						"          Zone,",
+						"          service_zone,",
+						"          StartDate,",
+						"          EndDate,",
+						"          IsCurrent,",
+						"          Processime",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> select2",
+						"source1 select(mapColumn(",
+						"          LocationIDnew = LocationID,",
+						"          Boroughnew = Borough,",
+						"          Zonenew = Zone,",
+						"          service_zonenew = service_zone",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select3",
+						"select2 derive(IsCurrent = false(),",
+						"          Processime = currentTimestamp(),",
+						"          EndDate = iifNull(currentTimestamp(), EndDate)) ~> derivedColumn2",
+						"LookForNULLs@noNULLs select(mapColumn(",
+						"          LocationID = LocationIDnew,",
+						"          Borough = Boroughnew,",
+						"          Zone = Zonenew,",
+						"          service_zone = service_zonenew,",
+						"          StartDate,",
+						"          EndDate,",
+						"          IsCurrent,",
+						"          Processime",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> select4",
+						"select4 derive(Processime = currentTimestamp(),",
+						"          StartDate = currentTimestamp()) ~> derivedColumn3",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'bronze/SCD2',",
+						"     mergeSchema: false,",
+						"     autoCompact: false,",
+						"     optimizedWrite: false,",
+						"     vacuum: 0,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['LocationID'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1",
+						"derivedColumn3 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delta',",
+						"     fileSystem: 'synpswrkshp',",
+						"     folderPath: 'bronze/SCD2',",
+						"     mergeSchema: false,",
+						"     autoCompact: false,",
+						"     optimizedWrite: false,",
+						"     vacuum: 0,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink2"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/AzureDataLakeStorageWorkshop')]"
+			]
 		}
 	]
 }
