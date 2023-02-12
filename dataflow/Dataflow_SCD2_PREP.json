@@ -24,6 +24,9 @@
 			"transformations": [
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "surrogateKey1"
 				}
 			],
 			"scriptLines": [
@@ -48,7 +51,10 @@
 				"          EndDate = toTimestamp('12/31/2078'),",
 				"          IsCurrent = true(),",
 				"          Processime = currentTimestamp()) ~> derivedColumn1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"derivedColumn1 keyGenerate(output(surrogatekeycol as long),",
+				"     startAt: 1000L,",
+				"     stepValue: 1L) ~> surrogateKey1",
+				"surrogateKey1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'delta',",
 				"     fileSystem: 'synpswrkshp',",
