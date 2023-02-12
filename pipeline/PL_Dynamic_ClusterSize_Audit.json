@@ -1,5 +1,5 @@
 {
-	"name": "PL_Dynamic_ClusterSize",
+	"name": "PL_Dynamic_ClusterSize_Audit",
 	"properties": {
 		"activities": [
 			{
@@ -61,8 +61,33 @@
 					},
 					"traceLevel": "Fine"
 				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Data flow1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "rowswritten",
+					"value": {
+						"value": "@string(activity('Data flow1').output) ",
+						"type": "Expression"
+					}
+				}
 			}
 		],
+		"variables": {
+			"rowswritten": {
+				"type": "String"
+			}
+		},
 		"annotations": []
 	}
 }
