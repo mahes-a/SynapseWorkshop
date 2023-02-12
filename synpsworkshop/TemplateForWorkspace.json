@@ -3973,7 +3973,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/PL_Dynamic_ClusterSize')]",
+			"name": "[concat(parameters('workspaceName'), '/PL_Dynamic_ClusterSize_Audit')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
@@ -4044,11 +4044,36 @@
 							},
 							"traceLevel": "Fine"
 						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Data flow1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "rowswritten",
+							"value": {
+								"value": "@string(activity('Data flow1').output) ",
+								"type": "Expression"
+							}
+						}
 					}
 				],
 				"policy": {
 					"elapsedTimeMetric": {},
 					"cancelAfter": {}
+				},
+				"variables": {
+					"rowswritten": {
+						"type": "String"
+					}
 				},
 				"annotations": []
 			},
