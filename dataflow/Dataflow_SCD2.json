@@ -210,7 +210,7 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select5",
 				"select1 aggregate(maxnewval = max(surrogatekeycol)) ~> aggregate2",
-				"derivedColumn2, select1, select5 union(byName: true)~> union1",
+				"select1, select5, derivedColumn2 union(byName: true)~> union1",
 				"source1 derive(iscurr = true()) ~> derivedColumn5",
 				"union1 alterRow(upsertIf(true())) ~> alterRow1",
 				"alterRow1 sink(allowSchemaDrift: true,",
