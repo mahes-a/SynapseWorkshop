@@ -3018,6 +3018,9 @@
 					"transformations": [
 						{
 							"name": "derivedColumn1"
+						},
+						{
+							"name": "surrogateKey1"
 						}
 					],
 					"scriptLines": [
@@ -3042,7 +3045,10 @@
 						"          EndDate = toTimestamp('12/31/2078'),",
 						"          IsCurrent = true(),",
 						"          Processime = currentTimestamp()) ~> derivedColumn1",
-						"derivedColumn1 sink(allowSchemaDrift: true,",
+						"derivedColumn1 keyGenerate(output(surrogatekeycol as long),",
+						"     startAt: 1000L,",
+						"     stepValue: 1L) ~> surrogateKey1",
+						"surrogateKey1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'delta',",
 						"     fileSystem: 'synpswrkshp',",
@@ -3145,13 +3151,6 @@
 								"type": "LinkedServiceReference"
 							},
 							"name": "sink1"
-						},
-						{
-							"linkedService": {
-								"referenceName": "AzureDataLakeStorageWorkshop",
-								"type": "LinkedServiceReference"
-							},
-							"name": "sink2"
 						}
 					],
 					"transformations": [
@@ -3168,12 +3167,6 @@
 							"name": "select1"
 						},
 						{
-							"name": "union1"
-						},
-						{
-							"name": "alterRow1"
-						},
-						{
 							"name": "select2"
 						},
 						{
@@ -3187,6 +3180,33 @@
 						},
 						{
 							"name": "derivedColumn3"
+						},
+						{
+							"name": "aggregate1"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "join3"
+						},
+						{
+							"name": "derivedColumn4"
+						},
+						{
+							"name": "select5"
+						},
+						{
+							"name": "aggregate2"
+						},
+						{
+							"name": "union1"
+						},
+						{
+							"name": "derivedColumn5"
+						},
+						{
+							"name": "alterRow1"
 						}
 					],
 					"scriptLines": [
@@ -3198,7 +3218,8 @@
 						"          StartDate as timestamp,",
 						"          EndDate as timestamp,",
 						"          IsCurrent as boolean,",
-						"          Processime as timestamp",
+						"          Processime as timestamp,",
+						"          surrogatekeycol as long",
 						"     ),",
 						"     allowSchemaDrift: true,",
 						"     validateSchema: false,",
@@ -3223,17 +3244,18 @@
 						"     escapeChar: '\\\\',",
 						"     quoteChar: '\\\"',",
 						"     columnNamesAsHeader: true) ~> source1",
-						"select3, source2 join(LocationIDnew == LocationID,",
+						"join2, source2 join(LocationIDnew == LocationID",
+						"     && iscurr == IsCurrent,",
 						"     joinType:'left',",
 						"     matchType:'exact',",
 						"     ignoreSpaces: false,",
 						"     broadcast: 'auto')~> join1",
 						"join1 split(isNull(LocationID),",
 						"     disjoint: false) ~> LookForNULLs@(hasNULLs, noNULLs)",
-						"LookForNULLs@hasNULLs derive(inserteddate = currentTimestamp(),",
-						"          StartDate = currentTimestamp(),",
+						"LookForNULLs@hasNULLs derive(StartDate = currentTimestamp(),",
 						"          IsCurrent = true(),",
-						"          Processime = currentTimestamp()) ~> derivedColumn1",
+						"          Processime = currentTimestamp(),",
+						"          surrogatekeycolnew = iifNull(surrogatekeycol,0) + maxval+1) ~> derivedColumn1",
 						"derivedColumn1 select(mapColumn(",
 						"          LocationID = LocationIDnew,",
 						"          Borough = Boroughnew,",
@@ -3242,12 +3264,11 @@
 						"          StartDate,",
 						"          EndDate,",
 						"          IsCurrent,",
-						"          Processime",
+						"          Processime,",
+						"          surrogatekeycol = surrogatekeycolnew",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> select1",
-						"select1, derivedColumn2 union(byName: true)~> union1",
-						"union1 alterRow(upsertIf(true())) ~> alterRow1",
 						"LookForNULLs@noNULLs select(mapColumn(",
 						"          LocationID,",
 						"          Borough,",
@@ -3256,15 +3277,17 @@
 						"          StartDate,",
 						"          EndDate,",
 						"          IsCurrent,",
-						"          Processime",
+						"          Processime,",
+						"          surrogatekeycol",
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
 						"     skipDuplicateMapOutputs: false) ~> select2",
-						"source1 select(mapColumn(",
+						"derivedColumn5 select(mapColumn(",
 						"          LocationIDnew = LocationID,",
 						"          Boroughnew = Borough,",
 						"          Zonenew = Zone,",
-						"          service_zonenew = service_zone",
+						"          service_zonenew = service_zone,",
+						"          iscurr",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> select3",
@@ -3279,12 +3302,42 @@
 						"          StartDate,",
 						"          EndDate,",
 						"          IsCurrent,",
-						"          Processime",
+						"          Processime,",
+						"          surrogatekeycol",
 						"     ),",
 						"     skipDuplicateMapInputs: false,",
 						"     skipDuplicateMapOutputs: false) ~> select4",
 						"select4 derive(Processime = currentTimestamp(),",
 						"          StartDate = currentTimestamp()) ~> derivedColumn3",
+						"source2 aggregate(maxval = max(surrogatekeycol)) ~> aggregate1",
+						"select3, aggregate1 join(1==1,",
+						"     joinType:'cross',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join2",
+						"derivedColumn3, aggregate2 join(1==1,",
+						"     joinType:'cross',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join3",
+						"join3 derive(surrogatekeycol = surrogatekeycol+maxnewval) ~> derivedColumn4",
+						"derivedColumn4 select(mapColumn(",
+						"          LocationID,",
+						"          Borough,",
+						"          Zone,",
+						"          service_zone,",
+						"          StartDate,",
+						"          EndDate,",
+						"          IsCurrent,",
+						"          Processime,",
+						"          surrogatekeycol",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select5",
+						"select1 aggregate(maxnewval = max(surrogatekeycol)) ~> aggregate2",
+						"select1, select5, derivedColumn2 union(byName: true)~> union1",
+						"source1 derive(iscurr = true()) ~> derivedColumn5",
+						"union1 alterRow(upsertIf(true())) ~> alterRow1",
 						"alterRow1 sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'delta',",
@@ -3298,30 +3351,12 @@
 						"     insertable:true,",
 						"     updateable:false,",
 						"     upsertable:true,",
-						"     keys:['LocationID'],",
+						"     keys:['surrogatekeycol'],",
 						"     umask: 0022,",
 						"     preCommands: [],",
 						"     postCommands: [],",
 						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink1",
-						"derivedColumn3 sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'delta',",
-						"     fileSystem: 'synpswrkshp',",
-						"     folderPath: 'bronze/SCD2',",
-						"     mergeSchema: false,",
-						"     autoCompact: false,",
-						"     optimizedWrite: false,",
-						"     vacuum: 0,",
-						"     deletable:false,",
-						"     insertable:true,",
-						"     updateable:false,",
-						"     upsertable:false,",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> sink2"
+						"     skipDuplicateMapOutputs: true) ~> sink1"
 					]
 				}
 			},
@@ -3355,8 +3390,7 @@
 								"datasetParameters": {
 									"source2": {},
 									"source1": {},
-									"sink1": {},
-									"sink2": {}
+									"sink1": {}
 								}
 							},
 							"staging": {},
@@ -3386,6 +3420,26 @@
 			"properties": {
 				"content": {
 					"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://stgwrkshp.dfs.core.windows.net/synpswrkshp/bronze/SCD2/',\n        FORMAT = 'DELTA'\n    ) AS [result]\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "master",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL script 3')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "-- This is auto-generated code\nSELECT\n    *\nFROM\n    OPENROWSET(\n        BULK 'https://stgwrkshp.dfs.core.windows.net/synpswrkshp/bronze/SCD2/',\n        FORMAT = 'DELTA'\n    ) AS [result]\n",
 					"metadata": {
 						"language": "sql"
 					},
