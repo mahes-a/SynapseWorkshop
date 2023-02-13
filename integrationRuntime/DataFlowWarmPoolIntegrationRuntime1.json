@@ -1,0 +1,18 @@
+{
+	"name": "DataFlowWarmPoolIntegrationRuntime1",
+	"properties": {
+		"type": "Managed",
+		"description": "Warm Pool Runtime",
+		"typeProperties": {
+			"computeProperties": {
+				"location": "AutoResolve",
+				"dataFlowProperties": {
+					"computeType": "General",
+					"coreCount": 8,
+					"timeToLive": 60,
+					"cleanup": false
+				}
+			}
+		}
+	}
+}
